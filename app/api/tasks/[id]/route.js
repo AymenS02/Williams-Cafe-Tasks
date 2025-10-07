@@ -2,7 +2,7 @@ import { connectDB } from "@/lib/config/db";
 import Task from "@/lib/models/taskSchema";
 
 export async function PATCH(req, { params }) {
-  const { id } = params;
+  const { id } = await params;
   const { initials, photos } = await req.json();
 
   await connectDB();
