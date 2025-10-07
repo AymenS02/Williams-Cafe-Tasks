@@ -20,12 +20,14 @@ export default function HomePage() {
     const data = await res.json();
     setTasks(data);
     setLoading(false);
+    console.log(data);
   }
 
   async function handleSubmit(e, taskId, isEdit = false) {
     e.preventDefault();
     const formData = new FormData(e.target);
     const initials = formData.get("initials");
+    const notes = formData.get("notes");
     const files = formData.getAll("photos");
 
     // Convert each file to base64
@@ -44,7 +46,7 @@ export default function HomePage() {
     const res = await fetch(`/api/tasks/${taskId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ initials, photos }),
+      body: JSON.stringify({ initials, notes, photos }),
     });
 
     if (res.ok) {
@@ -140,6 +142,18 @@ export default function HomePage() {
                   </div>
                   <div>
                     <label className="block font-semibold text-amber-900 mb-2">
+                      Update Notes (optional)
+                    </label>
+                    <input
+                      type="text"
+                      name="notes"
+                      defaultValue={task.notes || ""}
+                      className="text-amber-800 border-2 border-amber-300 p-3 rounded-lg w-full focus:border-amber-500 focus:outline-none bg-white"
+                      placeholder="e.g., Completed all prep work."
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-amber-900 mb-2">
                       Re-upload Photo(s)
                     </label>
                     <input
@@ -175,6 +189,11 @@ export default function HomePage() {
                     </span>
                   </div>
 
+                  <div className="mt-2 text-amber-800">
+                    <strong className="font-semibold">Notes:</strong>{" "}
+                    {task.notes || "No notes provided."}
+                  </div>
+
                   <div className="flex flex-wrap gap-3 mt-4">
                     {task.photos?.length > 0 && (
                       <button
@@ -208,6 +227,17 @@ export default function HomePage() {
                       required
                       className="text-amber-800 border-2 border-amber-300 p-3 rounded-lg w-full focus:border-amber-500 focus:outline-none bg-white"
                       placeholder="e.g., JD"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-amber-900 mb-2">
+                      Notes (optional)
+                    </label>
+                    <input
+                      type="text"
+                      name="notes"
+                      className="text-amber-800 border-2 border-amber-300 p-3 rounded-lg w-full focus:border-amber-500 focus:outline-none bg-white"
+                      placeholder="e.g., Completed all prep work."
                     />
                   </div>
                   <div>

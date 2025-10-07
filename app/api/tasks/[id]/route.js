@@ -3,7 +3,7 @@ import Task from "@/lib/models/taskSchema";
 
 export async function PATCH(req, { params }) {
   const { id } = await params;
-  const { initials, photos } = await req.json();
+  const { initials, notes, photos } = await req.json();
 
   await connectDB();
 
@@ -13,9 +13,10 @@ export async function PATCH(req, { params }) {
   }
 
   task.initials = initials;
+  task.notes = notes;
   task.photos = photos;
   task.status = "COMPLETED";
   await task.save();
 
-  return Response.json(task);
+  return new Response(JSON.stringify(task), { status: 200 });
 }
