@@ -8,7 +8,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [modalImages, setModalImages] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTaskId, setEditingTaskId] = useState(null); // 🟨 New state
+  const [editingTaskId, setEditingTaskId] = useState(null);
 
   useEffect(() => {
     fetchTasks();
@@ -23,40 +23,69 @@ export default function HomePage() {
     console.log(data);
   }
 
-  async function handleSubmit(e, taskId, isEdit = false) {
+  // 🟢 UPDATED handleSubmit to handle different statuses
+  // 🟢 UPDATED handleSubmit to handle different statuses
+// 🟢 UPDATED handleSubmit to handle different statuses
+  async function handleSubmit(e, taskId, isEdit = false, unable = false) {
     e.preventDefault();
-    const formData = new FormData(e.target);
+    const formData = new FormData(e.target.form || e.target); // works for both buttons
     const initials = formData.get("initials");
     const notes = formData.get("notes");
     const files = formData.getAll("photos");
+    const status = unable ? "INCOMPLETE" : "COMPLETED";
 
+    // Filter out empty files
+    const validFiles = files.filter(file => file && file.size > 0);
+
+    // Validation: Images required for COMPLETED, Notes required for INCOMPLETE
+    if (status === "COMPLETED" && validFiles.length === 0) {
+      alert("❌ Must submit images if task completed");
+      return;
+    }
+    
+    if (status === "INCOMPLETE" && !notes?.trim()) {
+      alert("❌ Must provide notes explaining why task is incomplete");
+      return;
+    }
+
+    let photos = [];
     // Convert each file to base64
-    const photos = await Promise.all(
-      files.map(
-        (file) =>
-          new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file); // Convert to Base64
-          })
-      )
-    );
+    if (files.length > 0) {
+      photos = await Promise.all(
+        files.map(
+          (file) =>
+            new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            })
+        )
+      );
+    }
 
     const res = await fetch(`/api/tasks/${taskId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ initials, notes, photos }),
+      body: JSON.stringify({ initials, notes, photos, status }),
     });
+      console.log({ initials, notes, photos, status });
 
     if (res.ok) {
-      alert(isEdit ? "✅ Task updated!" : "✅ Task submitted!");
+      alert(
+        unable
+          ? "⚠️ Task marked as unable to complete."
+          : isEdit
+          ? "✅ Task updated!"
+          : "✅ Task completed!"
+      );
       setEditingTaskId(null);
       fetchTasks();
     } else {
       alert("❌ Error submitting task");
     }
   }
+
 
 
   function openModal(images) {
@@ -218,7 +247,7 @@ export default function HomePage() {
                   className="space-y-4 mt-4 bg-amber-50 p-5 rounded-xl border border-amber-200"
                 >
                   <div>
-                    <label className="block font-semibold text-amber-900 mb-2">
+                    <label required className="block font-semibold text-amber-900 mb-2">
                       Your Initials
                     </label>
                     <input
@@ -231,7 +260,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <label className="block font-semibold text-amber-900 mb-2">
-                      Notes (optional)
+                      Notes (if task incomplete, please explain)
                     </label>
                     <input
                       type="text"
@@ -252,12 +281,23 @@ export default function HomePage() {
                       className="text-amber-800 border-2 border-amber-300 p-3 rounded-lg w-full focus:border-amber-500 focus:outline-none bg-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-900 file:text-amber-50 file:cursor-pointer hover:file:bg-amber-800"
                     />
                   </div>
-                  <button
-                    type="submit"
-                    className="bg-amber-900 text-amber-50 px-6 py-3 rounded-lg hover:bg-amber-800 transition-colors w-full font-semibold text-lg shadow-md"
-                  >
-                    Submit Task
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      type="submit"
+                      onClick={(e) => handleSubmit(e, task._id, false, false)}
+                      className="bg-amber-900 text-amber-50 px-6 py-3 rounded-lg hover:bg-amber-800 transition-colors w-full font-semibold text-lg shadow-md"
+                    >
+                      ✅ Submit Task
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => handleSubmit(e, task._id, false, true)}
+                      className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors w-full font-semibold text-lg shadow-md"
+                    >
+                      ⚠️ Unable to Complete
+                    </button>
+                  </div>
                 </form>
               )}
             </div>

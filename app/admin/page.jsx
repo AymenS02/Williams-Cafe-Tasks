@@ -99,9 +99,13 @@ export default function AdminPage() {
       {/* Task list */}
       <div className="max-w-2xl mx-auto">
         <div className="bg-white p-6 rounded-2xl shadow-lg border-2 border-amber-200">
-          <h2 className="text-2xl font-bold text-amber-900 mb-4 flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
+          <h2
+            className="text-2xl font-bold text-amber-900 mb-4 flex items-center gap-2"
+            style={{ fontFamily: "Georgia, serif" }}
+          >
             <span>📋</span> Current Tasks
           </h2>
+
           <ul className="space-y-4">
             {tasks.length > 0 ? (
               tasks.map((task) => (
@@ -114,13 +118,48 @@ export default function AdminPage() {
                       {task.status === "COMPLETED" ? "✅" : "☕"}
                     </span>
                     <div className="flex-1">
-                      <h3 className="font-bold text-xl text-amber-900 mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+                      <h3
+                        className="font-bold text-xl text-amber-900 mb-1"
+                        style={{ fontFamily: "Georgia, serif" }}
+                      >
                         {task.title}
                       </h3>
-                      <p className="text-amber-700 leading-relaxed">{task.description}</p>
-                      {task.status === "COMPLETED" && task.initials && (
-                        <div className="mt-2 inline-block bg-green-100 border border-green-500 text-green-800 px-3 py-1 rounded-lg text-sm font-medium">
-                          Completed by {task.initials}
+                      <p className="text-amber-700 leading-relaxed">
+                        {task.description}
+                      </p>
+
+                      {/* ✅ Show completion info */}
+                      {task.status === "COMPLETED" && (
+                        <div className="mt-3 space-y-2">
+                          <div className="inline-block bg-green-100 border border-green-500 text-green-800 px-3 py-1 rounded-lg text-sm font-medium">
+                            Completed by {task.initials}
+                          </div>
+
+                          {/* 🗒️ Notes */}
+                          <p className="text-amber-800 bg-white border border-amber-300 rounded-lg p-3 text-sm shadow-sm">
+                            <strong>Notes:</strong>{" "}
+                            {task.notes ? task.notes : "No notes provided."}
+                          </p>
+
+                          {/* 🖼️ Photos */}
+                          {task.photos?.length > 0 && (
+                            <details className="bg-amber-100 border border-amber-300 rounded-lg p-3">
+                              <summary className="cursor-pointer text-amber-800 font-semibold">
+                                📷 View {task.photos.length} Photo
+                                {task.photos.length > 1 ? "s" : ""}
+                              </summary>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                                {task.photos.map((photo, i) => (
+                                  <img
+                                    key={i}
+                                    src={photo}
+                                    alt={`Task ${task.title} photo ${i + 1}`}
+                                    className="rounded-lg border border-amber-300 shadow-sm"
+                                  />
+                                ))}
+                              </div>
+                            </details>
+                          )}
                         </div>
                       )}
                     </div>
@@ -135,6 +174,7 @@ export default function AdminPage() {
           </ul>
         </div>
       </div>
+
     </div>
   );
 }
