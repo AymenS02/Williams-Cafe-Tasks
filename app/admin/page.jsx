@@ -7,34 +7,94 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [tasks, setTasks] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [newCategory, setNewCategory] = useState({ name: "", description: "" });
 
   useEffect(() => {
-    if (isAuthorized) fetchTasks();
+    if (isAuthorized) {
+      fetchTasks();
+      fetchCategories();
+    }
   }, [isAuthorized]);
 
   async function fetchTasks() {
-    const res = await fetch("/api/tasks");
-    const data = await res.json();
-    setTasks(data);
+    try {
+      const res = await fetch("/api/tasks?type=MASTER");
+      const data = await res.json();
+      setTasks(data);
+      console.log(data);
+    } catch (err) {
+      console.error("Error fetching tasks:", err);
+    }
   }
 
-  async function handleSubmit(e) {
+  async function fetchCategories() {
+    try {
+      const res = await fetch("/api/categories");
+      const data = await res.json();
+      setCategories(data);
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    }
+  }
+
+  async function handleTaskSubmit(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
     const title = formData.get("title");
     const description = formData.get("description");
+    const category = formData.get("category");
+
+    if (!category) {
+      alert("Please select a category");
+      return;
+    }
 
     const res = await fetch("/api/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ adminPassword: password, title, description }),
+      body: JSON.stringify({
+        adminPassword: password,
+        title,
+        description,
+        category,
+        type: "MASTER",
+      }),
     });
 
     if (res.ok) {
       e.target.reset();
       fetchTasks();
     } else {
-      alert("Failed to create task (check password)");
+      const err = await res.json();
+      alert(err.message || "Failed to create task (check password)");
+    }
+  }
+
+  async function handleCategoryCreate() {
+    if (!newCategory.name.trim()) {
+      alert("Category name is required");
+      return;
+    }
+
+    const res = await fetch("/api/categories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        adminPassword: password,
+        name: newCategory.name,
+        description: newCategory.description,
+      }),
+    });
+
+    if (res.ok) {
+      setNewCategory({ name: "", description: "" });
+      setShowCategoryForm(false);
+      fetchCategories();
+    } else {
+      const err = await res.json();
+      alert(err.message || "Failed to create category");
     }
   }
 
@@ -46,7 +106,10 @@ export default function AdminPage() {
             <div className="inline-block bg-amber-900 text-amber-50 px-5 py-3 rounded-full mb-3 shadow-lg">
               <span className="text-3xl">🔐</span>
             </div>
-            <h2 className="text-3xl font-bold text-amber-900" style={{ fontFamily: 'Georgia, serif' }}>
+            <h2
+              className="text-3xl font-bold text-amber-900"
+              style={{ fontFamily: "Georgia, serif" }}
+            >
               Admin Login
             </h2>
             <p className="text-amber-700 mt-2">Williams Cafe Management</p>
@@ -80,19 +143,92 @@ export default function AdminPage() {
         <div className="inline-block bg-amber-900 text-amber-50 px-6 py-3 rounded-full mb-4 shadow-lg">
           <span className="text-2xl">⚙️</span>
         </div>
-        <h1 className="text-4xl font-bold text-amber-900 mb-2" style={{ fontFamily: 'Georgia, serif' }}>
+        <h1
+          className="text-4xl font-bold text-amber-900 mb-2"
+          style={{ fontFamily: "Georgia, serif" }}
+        >
           Admin Dashboard
         </h1>
-        <p className="text-amber-700 text-lg">Williams Cafe Task Management</p>
+        <p className="text-amber-700 text-lg">
+          Williams Cafe Task Management
+        </p>
+      </div>
+
+      {/* Category Management */}
+      <div className="max-w-2xl mx-auto mb-10">
+        <div className="bg-white p-6 rounded-2xl shadow-lg border-2 border-amber-200">
+          <div className="flex items-center justify-between mb-4">
+            <h2
+              className="text-2xl font-bold text-amber-900 flex items-center gap-2"
+              style={{ fontFamily: "Georgia, serif" }}
+            >
+              <span>🏷️</span> Categories
+            </h2>
+            <button
+              onClick={() => setShowCategoryForm(!showCategoryForm)}
+              className="bg-amber-900 text-amber-50 px-4 py-2 rounded-lg hover:bg-amber-800 transition-colors text-sm font-semibold"
+            >
+              {showCategoryForm ? "Cancel" : "+ New Category"}
+            </button>
+          </div>
+
+          {showCategoryForm && (
+            <div className="mb-6 p-4 bg-amber-50 rounded-lg border-2 border-amber-200">
+              <input
+                type="text"
+                placeholder="Category name"
+                value={newCategory.name}
+                onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
+                className="text-amber-800 border-2 border-amber-300 p-3 rounded-lg w-full mb-3 focus:border-amber-500 focus:outline-none"
+              />
+              <textarea
+                placeholder="Category description (optional)"
+                value={newCategory.description}
+                onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
+                className="text-amber-800 border-2 border-amber-300 p-3 rounded-lg w-full mb-3 focus:border-amber-500 focus:outline-none resize-none"
+                rows="2"
+              />
+              <button
+                onClick={handleCategoryCreate}
+                className="bg-amber-900 text-amber-50 px-6 py-2 rounded-lg hover:bg-amber-800 transition-colors font-semibold w-full"
+              >
+                Create Category
+              </button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            {categories.length > 0 ? (
+              categories.map((cat) => (
+                <div
+                  key={cat._id}
+                  className="p-4 bg-amber-50 rounded-lg border-2 border-amber-200 hover:shadow-md transition-shadow"
+                >
+                  <h3 className="font-bold text-amber-900 mb-1">{cat.name}</h3>
+                  {cat.description && (
+                    <p className="text-sm text-amber-600">{cat.description}</p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="col-span-2 text-amber-600 text-center py-4">
+                No categories yet. Create one above!
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Create new task form */}
       <div className="max-w-2xl mx-auto mb-10">
         <div className="bg-white p-6 rounded-2xl shadow-lg border-2 border-amber-200">
-          <h2 className="text-2xl font-bold text-amber-900 mb-4 flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
+          <h2
+            className="text-2xl font-bold text-amber-900 mb-4 flex items-center gap-2"
+            style={{ fontFamily: "Georgia, serif" }}
+          >
             <span>➕</span> Create New Task
           </h2>
-          <AdminForm onSubmit={handleSubmit} />
+          <AdminForm onSubmit={handleTaskSubmit} categories={categories} />
         </div>
       </div>
 
@@ -103,7 +239,7 @@ export default function AdminPage() {
             className="text-2xl font-bold text-amber-900 mb-4 flex items-center gap-2"
             style={{ fontFamily: "Georgia, serif" }}
           >
-            <span>📋</span> Current Tasks
+            <span>📋</span> Active Master Tasks
           </h2>
 
           <ul className="space-y-4">
@@ -114,54 +250,28 @@ export default function AdminPage() {
                   className="p-5 bg-amber-50 shadow-md rounded-xl border-2 border-amber-200 hover:shadow-lg transition-shadow"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl mt-1">
-                      {task.status === "COMPLETED" ? "✅" : "☕"}
-                    </span>
+                    <span className="text-2xl mt-1">☕</span>
                     <div className="flex-1">
-                      <h3
-                        className="font-bold text-xl text-amber-900 mb-1"
-                        style={{ fontFamily: "Georgia, serif" }}
-                      >
-                        {task.title}
-                      </h3>
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3
+                          className="font-bold text-xl text-amber-900"
+                          style={{ fontFamily: "Georgia, serif" }}
+                        >
+                          {task.title}
+                        </h3>
+                        {task.category && (
+                          <span className="text-xs bg-amber-900 text-amber-50 px-2 py-1 rounded-full">
+                            {typeof task.category === "string"
+                              ? task.category
+                              : (task.category && task.category.name)
+                                ? task.category.name
+                                : "Unknown"}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-amber-700 leading-relaxed">
                         {task.description}
                       </p>
-
-                      {/* ✅ Show completion info */}
-                      {task.status === "COMPLETED" && (
-                        <div className="mt-3 space-y-2">
-                          <div className="inline-block bg-green-100 border border-green-500 text-green-800 px-3 py-1 rounded-lg text-sm font-medium">
-                            Completed by {task.initials}
-                          </div>
-
-                          {/* 🗒️ Notes */}
-                          <p className="text-amber-800 bg-white border border-amber-300 rounded-lg p-3 text-sm shadow-sm">
-                            <strong>Notes:</strong>{" "}
-                            {task.notes ? task.notes : "No notes provided."}
-                          </p>
-
-                          {/* 🖼️ Photos */}
-                          {task.photos?.length > 0 && (
-                            <details className="bg-amber-100 border border-amber-300 rounded-lg p-3">
-                              <summary className="cursor-pointer text-amber-800 font-semibold">
-                                📷 View {task.photos.length} Photo
-                                {task.photos.length > 1 ? "s" : ""}
-                              </summary>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                                {task.photos.map((photo, i) => (
-                                  <img
-                                    key={i}
-                                    src={photo}
-                                    alt={`Task ${task.title} photo ${i + 1}`}
-                                    className="rounded-lg border border-amber-300 shadow-sm"
-                                  />
-                                ))}
-                              </div>
-                            </details>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </li>
@@ -174,7 +284,6 @@ export default function AdminPage() {
           </ul>
         </div>
       </div>
-
     </div>
   );
 }

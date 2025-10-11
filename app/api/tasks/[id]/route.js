@@ -1,5 +1,7 @@
+// app/api/tasks/[id]/route.js
+
 import { connectDB } from "@/lib/config/db";
-import Task from "@/lib/models/taskSchema";
+import { Task } from "@/lib/models/taskSchema";
 
 export async function PATCH(req, { params }) {
   const { id } = await params;
@@ -11,12 +13,42 @@ export async function PATCH(req, { params }) {
   if (!task) {
     return new Response(JSON.stringify({ error: "Task not found" }), { status: 404 });
   }
-  console.log({ initials, notes, photos, status });
+
+  // Update employee submission
   task.initials = initials;
   task.notes = notes;
   task.photos = photos;
   task.status = status;
   await task.save();
 
+  // Automatically delete this submission after 30s
+  setTimeout(async () => {
+    // Clear only the employee-related fields
+    const tempTask = await Task.findById(id);
+    if (tempTask) {
+      tempTask.initials = undefined;
+      tempTask.notes = undefined;
+      tempTask.photos = [];
+      tempTask.status = "PENDING";
+      await tempTask.save();
+      console.log(`Cleared submission for task ${id}`);
+
+      // Repost the task for employees (optional: create a new copy)
+      setTimeout(async () => {
+        const originalTask = await Task.findById(id).populate('category');
+        if (originalTask) {
+          const repostedTask = await Task.create({
+            title: originalTask.title,
+            description: originalTask.description,
+            category: originalTask.category._id, // ✅ Include category
+            type: "EMPLOYEE_COPY"
+          });
+          console.log(`Reposted task: ${repostedTask._id}`);
+        }
+      }, 30000); // 30s after deletion
+    }
+  }, 30000); // 30s after submission
+
   return new Response(JSON.stringify(task), { status: 200 });
 }
+

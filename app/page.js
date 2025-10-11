@@ -5,6 +5,8 @@ import Image from "next/image";
 
 export default function HomePage() {
   const [tasks, setTasks] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [modalImages, setModalImages] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -12,32 +14,34 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchTasks();
+    fetchCategories();
   }, []);
 
   async function fetchTasks() {
     setLoading(true);
-    const res = await fetch("/api/tasks");
+    const res = await fetch("/api/tasks?type=EMPLOYEE_COPY");
     const data = await res.json();
     setTasks(data);
     setLoading(false);
-    console.log(data);
   }
 
-  // 🟢 UPDATED handleSubmit to handle different statuses
-  // 🟢 UPDATED handleSubmit to handle different statuses
-// 🟢 UPDATED handleSubmit to handle different statuses
+  async function fetchCategories() {
+    const res = await fetch("/api/categories");
+    const data = await res.json();
+    console.log(data);
+    setCategories(data);
+  }
+
   async function handleSubmit(e, taskId, isEdit = false, unable = false) {
     e.preventDefault();
-    const formData = new FormData(e.target.form || e.target); // works for both buttons
+    const formData = new FormData(e.target.form || e.target);
     const initials = formData.get("initials");
     const notes = formData.get("notes");
     const files = formData.getAll("photos");
     const status = unable ? "INCOMPLETE" : "COMPLETED";
 
-    // Filter out empty files
     const validFiles = files.filter(file => file && file.size > 0);
 
-    // Validation: Images required for COMPLETED, Notes required for INCOMPLETE
     if (status === "COMPLETED" && validFiles.length === 0) {
       alert("❌ Must submit images if task completed");
       return;
@@ -49,7 +53,6 @@ export default function HomePage() {
     }
 
     let photos = [];
-    // Convert each file to base64
     if (files.length > 0) {
       photos = await Promise.all(
         files.map(
@@ -69,7 +72,6 @@ export default function HomePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ initials, notes, photos, status }),
     });
-      console.log({ initials, notes, photos, status });
 
     if (res.ok) {
       alert(
@@ -86,8 +88,6 @@ export default function HomePage() {
     }
   }
 
-
-
   function openModal(images) {
     setModalImages(images);
     setIsModalOpen(true);
@@ -97,6 +97,17 @@ export default function HomePage() {
     setModalImages([]);
     setIsModalOpen(false);
   }
+
+  // Filter tasks by selected category
+  const filteredTasks = selectedCategory === "ALL" 
+    ? tasks 
+    : tasks.filter(task => task.category?._id === selectedCategory);
+
+  // Group tasks by category for display
+  const tasksByCategory = categories.reduce((acc, cat) => {
+    acc[cat._id] = filteredTasks.filter(task => task.category?._id === cat._id);
+    return acc;
+  }, {});
 
   if (loading) {
     return (
@@ -122,35 +133,83 @@ export default function HomePage() {
         <p className="text-amber-700 text-lg">Daily Task Checklist</p>
       </div>
 
-      {tasks.length === 0 ? (
+      {/* Category Filter */}
+      {categories.length > 0 && (
+        <div className="max-w-3xl mx-auto mb-6">
+          <div className="bg-white p-4 rounded-2xl shadow-lg border-2 border-amber-200">
+            <label className="block font-semibold text-amber-900 mb-3 text-center">
+              Filter by Category
+            </label>
+            <div className="flex flex-wrap gap-2 justify-center">
+              <button
+                onClick={() => setSelectedCategory("ALL")}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                  selectedCategory === "ALL"
+                    ? "bg-amber-900 text-amber-50 shadow-md"
+                    : "bg-amber-100 text-amber-900 hover:bg-amber-200"
+                }`}
+              >
+                All Tasks ({tasks.length})
+              </button>
+              {categories.map((cat) => {
+                const count = tasks.filter(t => t.category?._id === cat._id).length;
+                return (
+                  <button
+                    key={cat._id}
+                    onClick={() => setSelectedCategory(cat._id)}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                      selectedCategory === cat._id
+                        ? "bg-amber-900 text-amber-50 shadow-md"
+                        : "bg-amber-100 text-amber-900 hover:bg-amber-200"
+                    }`}
+                  >
+                    {cat.name} ({count})
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {filteredTasks.length === 0 ? (
         <p className="text-center text-amber-600 bg-white/60 max-w-md mx-auto p-6 rounded-lg shadow">
-          No tasks available today.
+          {selectedCategory === "ALL" 
+            ? "No tasks available today."
+            : "No tasks in this category."}
         </p>
       ) : (
         <div className="max-w-3xl mx-auto space-y-5">
-          {tasks.map((task) => (
+          {filteredTasks.map((task) => (
             <div
               key={task._id}
               className="bg-white p-6 rounded-2xl shadow-lg border-2 border-amber-200 hover:shadow-xl transition-shadow"
             >
               <div className="flex items-start gap-3 mb-3">
                 <div className="text-2xl mt-1">
-                  {task.status === "COMPLETED" ? "✅" : "☕"}
+                  {task.status === "COMPLETED" ? "✅" : task.status === "INCOMPLETE" ? "⚠️" : "☕"}
                 </div>
                 <div className="flex-1">
-                  <h2
-                    className="text-2xl font-bold text-amber-900 mb-1"
-                    style={{ fontFamily: "Georgia, serif" }}
-                  >
-                    {task.title}
-                  </h2>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h2
+                      className="text-2xl font-bold text-amber-900"
+                      style={{ fontFamily: "Georgia, serif" }}
+                    >
+                      {task.title}
+                    </h2>
+                    {task.category && (
+                      <span className="text-xs bg-amber-900 text-amber-50 px-2 py-1 rounded-full">
+                        {task.category.name}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-amber-700 leading-relaxed">
                     {task.description}
                   </p>
                 </div>
               </div>
 
-              {/* 🟨 Edit mode form */}
+              {/* Edit mode form */}
               {editingTaskId === task._id ? (
                 <form
                   onSubmit={(e) => handleSubmit(e, task._id, true)}
@@ -240,14 +299,34 @@ export default function HomePage() {
                     </button>
                   </div>
                 </>
+              ) : task.status === "INCOMPLETE" ? (
+                <>
+                  <div className="bg-red-100 border-2 border-red-500 text-red-800 p-4 rounded-xl mt-4">
+                    <span className="text-lg">
+                      ⚠️ Marked incomplete by{" "}
+                      <strong className="font-bold">{task.initials}</strong>
+                    </span>
+                  </div>
+
+                  <div className="mt-2 text-amber-800">
+                    <strong className="font-semibold">Reason:</strong>{" "}
+                    {task.notes || "No reason provided."}
+                  </div>
+
+                  <button
+                    onClick={() => setEditingTaskId(task._id)}
+                    className="mt-4 bg-yellow-500 text-amber-900 px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors shadow-md font-medium"
+                  >
+                    ✏️ Edit Submission
+                  </button>
+                </>
               ) : (
-                // 🟩 Normal submission form
                 <form
                   onSubmit={(e) => handleSubmit(e, task._id)}
                   className="space-y-4 mt-4 bg-amber-50 p-5 rounded-xl border border-amber-200"
                 >
                   <div>
-                    <label required className="block font-semibold text-amber-900 mb-2">
+                    <label className="block font-semibold text-amber-900 mb-2">
                       Your Initials
                     </label>
                     <input
@@ -305,7 +384,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 🟤 Modal */}
+      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
           <div className="bg-amber-50 rounded-2xl max-w-4xl w-full p-6 relative overflow-y-auto max-h-full border-4 border-amber-900 shadow-2xl">
