@@ -4,10 +4,7 @@ import { connectDB } from "@/lib/config/db";
 import { Task, Archive } from "@/lib/models/taskSchema";
 
 export async function GET(req) {
-  // FOR TESTING: Allow all requests (disable auth)
-  // TODO: Re-enable auth for production by uncommenting below
-  
-  /*
+  // PRODUCTION: Verify the request is from Vercel Cron
   const authHeader = req.headers.get('authorization');
   const isVercelCron = req.headers.get('user-agent')?.includes('vercel-cron');
   const hasValidSecret = authHeader === `Bearer ${process.env.CRON_SECRET}`;
@@ -15,7 +12,6 @@ export async function GET(req) {
   if (!isVercelCron && !hasValidSecret) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
-  */
 
   console.log('[CRON] Running task deployment...');
 

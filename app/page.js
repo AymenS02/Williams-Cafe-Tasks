@@ -16,31 +16,12 @@ export default function HomePage() {
     fetchTasks();
     fetchCategories();
     
-    // FOR TESTING: Auto-deploy tasks every 30 seconds
-    const deployInterval = setInterval(async () => {
-      console.log('[AUTO-DEPLOY] Deploying tasks...');
-      try {
-        const res = await fetch('/api/cron/deploy-tasks', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || 'test'}`
-          }
-        });
-        const data = await res.json();
-        console.log('[AUTO-DEPLOY] Result:', data);
-        fetchTasks(); // Refresh task list
-      } catch (err) {
-        console.error('[AUTO-DEPLOY] Error:', err);
-      }
-    }, 30000); // 30 seconds
-    
-    // Auto-refresh tasks every 30 seconds
+    // Auto-refresh tasks every 5 minutes to show updates
     const refreshInterval = setInterval(() => {
       fetchTasks();
-    }, 30000);
+    }, 300000); // 5 minutes
     
     return () => {
-      clearInterval(deployInterval);
       clearInterval(refreshInterval);
     };
   }, []);
