@@ -22,7 +22,8 @@ export async function GET(req) {
 
 export async function POST(req) {
   const { adminPassword, title, description, category, type } = await req.json();
-
+  console.log("Received POST data:", { adminPassword, title, description, category, type });
+  console.log("Environment ADMIN_PASSWORD:", process.env.ADMIN_PASSWORD);
   if (adminPassword !== process.env.ADMIN_PASSWORD) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403 });
   }

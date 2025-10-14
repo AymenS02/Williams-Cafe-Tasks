@@ -30,22 +30,31 @@ export default function AdminPage() {
     }
   }
 
-  async function handleLogin() {
+async function handleLogin() {
+  if (!password.trim()) {
+    alert("Please enter a password");
+    return;
+  }
+
   try {
-    // Test the password by trying to fetch tasks
-    const res = await fetch("/api/tasks?type=MASTER", {
-      headers: {
-        "Authorization": `Bearer ${password}`
-      }
+    const res = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminPassword: password })
     });
-    
+
     if (res.ok) {
       setIsAuthorized(true);
+      setPassword(""); // Clear password for security
     } else {
-      alert("Wrong password");
+      const err = await res.json();
+      alert(err.error || "Wrong password");
+      setPassword(""); // Clear password on failed attempt
     }
   } catch (error) {
+    console.error("Login error:", error);
     alert("Login failed");
+    setPassword("");
   }
 }
 
@@ -224,6 +233,11 @@ export default function AdminPage() {
             className="text-amber-800 border-2 border-amber-300 p-3 rounded-lg w-full mb-4 focus:border-amber-500 focus:outline-none bg-amber-50"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleLogin();
+              }
+            }}
           />
           <button
             onClick={handleLogin}
@@ -252,12 +266,23 @@ export default function AdminPage() {
         <p className="text-amber-700 text-lg">
           Williams Cafe Task Management
         </p>
-        <button
-          onClick={deployTasksToEmployees}
-          className="mt-4 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold shadow-lg"
-        >
-          🚀 Deploy Tasks to Employees
-        </button>
+        <div className="flex gap-4 justify-center">
+          <button
+            onClick={deployTasksToEmployees}
+            className="mt-4 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold shadow-lg"
+          >
+            🚀 Deploy Tasks to Employees
+          </button>
+          <button
+            onClick={() => {
+              setIsAuthorized(false);
+              setPassword("");
+            }}
+            className="mt-4 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold shadow-lg"
+          >
+            🚪 Logout
+          </button>
+        </div>
       </div>
 
       {/* Category Management */}
