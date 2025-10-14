@@ -46,11 +46,11 @@ export default function HomePage() {
     const initials = formData.get("initials");
     const notes = formData.get("notes");
     const files = formData.getAll("photos");
-    const status = unable ? "INCOMPLETE" : "COMPLETED";
+    const status = isEdit ? formData.get("status") : (unable ? "INCOMPLETE" : "COMPLETED");
 
     const validFiles = files.filter(file => file && file.size > 0);
 
-    if (status === "COMPLETED" && validFiles.length === 0) {
+    if (status === "COMPLETED" && validFiles.length === 0 && !isEdit) {
       alert("❌ Must submit images if task completed");
       return;
     }
@@ -225,6 +225,19 @@ export default function HomePage() {
                 >
                   <div>
                     <label className="block font-semibold text-amber-900 mb-2">
+                      Update Status
+                    </label>
+                    <select
+                      name="status"
+                      defaultValue={task.status}
+                      className="text-amber-800 border-2 border-amber-300 p-3 rounded-lg w-full focus:border-amber-500 focus:outline-none bg-white"
+                    >
+                      <option value="COMPLETED">✅ Completed</option>
+                      <option value="INCOMPLETE">⚠️ Incomplete</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-amber-900 mb-2">
                       Update Initials
                     </label>
                     <input
@@ -238,7 +251,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <label className="block font-semibold text-amber-900 mb-2">
-                      Update Notes (optional)
+                      Update Notes (required if incomplete)
                     </label>
                     <input
                       type="text"
@@ -272,8 +285,7 @@ export default function HomePage() {
                       onClick={() => setEditingTaskId(null)}
                       className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors w-full font-semibold shadow-md"
                     >
-                      Cancel
-                    </button>
+                      Cancel</button>
                   </div>
                 </form>
               ) : task.status === "COMPLETED" ? (

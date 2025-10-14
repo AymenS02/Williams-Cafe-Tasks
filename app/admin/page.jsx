@@ -30,6 +30,25 @@ export default function AdminPage() {
     }
   }
 
+  async function handleLogin() {
+  try {
+    // Test the password by trying to fetch tasks
+    const res = await fetch("/api/tasks?type=MASTER", {
+      headers: {
+        "Authorization": `Bearer ${password}`
+      }
+    });
+    
+    if (res.ok) {
+      setIsAuthorized(true);
+    } else {
+      alert("Wrong password");
+    }
+  } catch (error) {
+    alert("Login failed");
+  }
+}
+
   async function fetchCategories() {
     try {
       const res = await fetch("/api/categories");
@@ -77,18 +96,25 @@ export default function AdminPage() {
       return;
     }
 
-    const res = await fetch("/api/cron/deploy-tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ adminPassword: password }),
-    });
+    try {
+      const res = await fetch("/api/cron/deploy-tasks", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ adminPassword: password }),
+      });
 
-    if (res.ok) {
-      const data = await res.json();
-      alert(`✅ Deployed ${data.count} tasks to employees!`);
-    } else {
-      const err = await res.json();
-      alert(err.message || "Failed to deploy tasks");
+      if (res.ok) {
+        const data = await res.json();
+        alert(`✅ Deployed ${data.count} tasks to employees!\nArchived: ${data.archived} tasks`);
+      } else {
+        const err = await res.json();
+        alert(`❌ ${err.error || "Failed to deploy tasks"}`);
+      }
+    } catch (error) {
+      console.error("Deploy error:", error);
+      alert("❌ Network error while deploying tasks");
     }
   }
 
@@ -200,11 +226,7 @@ export default function AdminPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
           <button
-            onClick={() => {
-              if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD)
-                setIsAuthorized(true);
-              else alert("Wrong password");
-            }}
+            onClick={handleLogin}
             className="bg-amber-900 text-amber-50 w-full py-3 rounded-lg hover:bg-amber-800 transition-colors font-semibold text-lg shadow-md"
           >
             Enter

@@ -3,16 +3,7 @@
 import { connectDB } from "@/lib/config/db";
 import { Task, Archive } from "@/lib/models/taskSchema";
 
-export async function GET(req) {
-  // PRODUCTION: Verify the request is from Vercel Cron
-  const authHeader = req.headers.get('authorization');
-  const isVercelCron = req.headers.get('user-agent')?.includes('vercel-cron');
-  const hasValidSecret = authHeader === `Bearer ${process.env.CRON_SECRET}`;
-  
-  if (!isVercelCron && !hasValidSecret) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-  }
-
+async function deployTasks() {
   console.log('[CRON] Running task deployment...');
 
   try {
@@ -69,11 +60,11 @@ export async function GET(req) {
 
     if (masterTasks.length === 0) {
       console.log('[CRON] No master tasks to deploy');
-      return Response.json({ 
+      return { 
         message: "No master tasks to deploy", 
         count: 0,
         archived: employeeTasks.length
-      });
+      };
     }
 
     // Create EMPLOYEE_COPY for each MASTER task
@@ -89,15 +80,33 @@ export async function GET(req) {
 
     console.log(`[CRON] Deployed ${createdTasks.length} tasks at ${new Date().toISOString()}`);
 
-    return Response.json({ 
+    return { 
       success: true,
       message: "Tasks deployed successfully", 
       count: createdTasks.length,
       archived: employeeTasks.filter(t => t.status !== "PENDING").length,
       timestamp: new Date().toISOString()
-    });
+    };
   } catch (error) {
     console.error("[CRON] Error deploying tasks:", error);
+    throw error;
+  }
+}
+
+export async function GET(req) {
+  // PRODUCTION: Verify the request is from Vercel Cron
+  const authHeader = req.headers.get('authorization');
+  const isVercelCron = req.headers.get('user-agent')?.includes('vercel-cron');
+  const hasValidSecret = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  
+  if (!isVercelCron && !hasValidSecret) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
+
+  try {
+    const result = await deployTasks();
+    return Response.json(result);
+  } catch (error) {
     return new Response(
       JSON.stringify({ error: "Failed to deploy tasks", details: error.message }), 
       { status: 500 }
@@ -107,12 +116,23 @@ export async function GET(req) {
 
 // Manual trigger for admin (with password protection)
 export async function POST(req) {
-  const { adminPassword } = await req.json();
+  try {
+    const body = await req.json();
+    const { adminPassword } = body;
 
-  if (adminPassword !== process.env.ADMIN_PASSWORD) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403 });
+    // Check if password matches
+    if (adminPassword !== process.env.ADMIN_PASSWORD) {
+      return new Response(JSON.stringify({ error: "Unauthorized - Invalid password" }), { status: 403 });
+    }
+
+    // If password is correct, deploy tasks
+    const result = await deployTasks();
+    return Response.json(result);
+  } catch (error) {
+    console.error("[POST] Error:", error);
+    return new Response(
+      JSON.stringify({ error: "Failed to deploy tasks", details: error.message }), 
+      { status: 500 }
+    );
   }
-
-  // Reuse the GET logic
-  return GET(req);
 }
