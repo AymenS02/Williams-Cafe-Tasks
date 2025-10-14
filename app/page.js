@@ -50,10 +50,7 @@ export default function HomePage() {
 
     const validFiles = files.filter(file => file && file.size > 0);
 
-    if (status === "COMPLETED" && validFiles.length === 0 && !isEdit) {
-      alert("❌ Must submit images if task completed");
-      return;
-    }
+    // Photos are no longer required for completed tasks
     
     if (status === "INCOMPLETE" && !notes?.trim()) {
       alert("❌ Must provide notes explaining why task is incomplete");
@@ -93,6 +90,31 @@ export default function HomePage() {
       fetchTasks();
     } else {
       alert("❌ Error submitting task");
+    }
+  }
+
+  async function handleUndoSubmission(taskId) {
+    if (!confirm("Are you sure you want to undo this submission? This will reset the task to pending status.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "undo" }),
+      });
+
+      if (res.ok) {
+        alert("↩️ Task submission undone! Task is now back to pending status.");
+        fetchTasks();
+      } else {
+        const err = await res.json();
+        alert(`❌ Error: ${err.error || "Failed to undo submission"}`);
+      }
+    } catch (error) {
+      console.error("Undo error:", error);
+      alert("❌ Network error while undoing submission");
     }
   }
 
@@ -263,7 +285,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <label className="block font-semibold text-amber-900 mb-2">
-                      Re-upload Photo(s)
+                      Re-upload Photo(s) (Optional)
                     </label>
                     <input
                       type="file"
@@ -317,6 +339,12 @@ export default function HomePage() {
                     >
                       ✏️ Edit Submission
                     </button>
+                    <button
+                      onClick={() => handleUndoSubmission(task._id)}
+                      className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors shadow-md font-medium"
+                    >
+                      ↩️ Undo Submission
+                    </button>
                   </div>
                 </>
               ) : task.status === "INCOMPLETE" ? (
@@ -333,12 +361,20 @@ export default function HomePage() {
                     {task.notes || "No reason provided."}
                   </div>
 
-                  <button
-                    onClick={() => setEditingTaskId(task._id)}
-                    className="mt-4 bg-yellow-500 text-amber-900 px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors shadow-md font-medium"
-                  >
-                    ✏️ Edit Submission
-                  </button>
+                  <div className="flex gap-3 mt-4">
+                    <button
+                      onClick={() => setEditingTaskId(task._id)}
+                      className="bg-yellow-500 text-amber-900 px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors shadow-md font-medium"
+                    >
+                      ✏️ Edit Submission
+                    </button>
+                    <button
+                      onClick={() => handleUndoSubmission(task._id)}
+                      className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors shadow-md font-medium"
+                    >
+                      ↩️ Undo Submission
+                    </button>
+                  </div>
                 </>
               ) : (
                 <form
@@ -370,7 +406,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <label className="block font-semibold text-amber-900 mb-2">
-                      Upload Photo(s)
+                      Upload Photo(s) (Optional)
                     </label>
                     <input
                       type="file"

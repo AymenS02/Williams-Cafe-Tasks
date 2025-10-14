@@ -24,6 +24,32 @@ export async function PATCH(req, { params }) {
   return new Response(JSON.stringify(task), { status: 200 });
 }
 
+export async function PUT(req, { params }) {
+  const { id } = await params;
+  const { action } = await req.json();
+
+  await connectDB();
+
+  const task = await Task.findById(id);
+  if (!task) {
+    return new Response(JSON.stringify({ error: "Task not found" }), { status: 404 });
+  }
+
+  if (action === "undo") {
+    // Reset task to pending status
+    task.initials = undefined;
+    task.notes = undefined;
+    task.photos = [];
+    task.status = "PENDING";
+    await task.save();
+
+    console.log(`Task ${id} reset to pending status`);
+    return new Response(JSON.stringify({ message: "Task reset to pending", task }), { status: 200 });
+  }
+
+  return new Response(JSON.stringify({ error: "Invalid action" }), { status: 400 });
+}
+
 export async function DELETE(req, { params }) {
   const { id } = await params;
 
