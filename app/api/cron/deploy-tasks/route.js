@@ -13,7 +13,9 @@ async function deployTasks() {
     const today = new Date().toISOString().split('T')[0];
 
     // Get all EMPLOYEE_COPY tasks to archive
-    const employeeTasks = await Task.find({ type: "EMPLOYEE_COPY" }).populate('category');
+    const employeeTasks = await Task.find({ type: "EMPLOYEE_COPY" })
+      .populate('category')
+      .limit(1000); // Add limit for safety
 
     // Archive tasks if there are any
     if (employeeTasks.length > 0) {
@@ -28,7 +30,7 @@ async function deployTasks() {
           notes: task.notes,
           photos: task.photos,
           status: task.status,
-          completedAt: task.updatedAt,
+          completedAt: task.dateCompleted || task.updatedAt, // Use completion timestamp if available
         }));
 
       if (tasksToArchive.length > 0) {
@@ -56,7 +58,8 @@ async function deployTasks() {
     console.log(`[CRON] Deleted ${deleted.deletedCount} old employee tasks`);
 
     // Get all MASTER tasks
-    const masterTasks = await Task.find({ type: "MASTER" });
+    const masterTasks = await Task.find({ type: "MASTER" })
+      .limit(1000); // Add limit for safety
 
     if (masterTasks.length === 0) {
       console.log('[CRON] No master tasks to deploy');

@@ -317,6 +317,11 @@ export default function HomePage() {
                       ✅ Completed by{" "}
                       <strong className="font-bold">{task.initials}</strong>
                     </span>
+                    {task.dateCompleted && (
+                      <div className="text-sm mt-1 text-green-700">
+                        📅 Completed on {new Date(task.dateCompleted).toLocaleString()}
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-2 text-amber-800">
@@ -354,6 +359,11 @@ export default function HomePage() {
                       ⚠️ Marked incomplete by{" "}
                       <strong className="font-bold">{task.initials}</strong>
                     </span>
+                    {task.dateCompleted && (
+                      <div className="text-sm mt-1 text-red-700">
+                        📅 Marked incomplete on {new Date(task.dateCompleted).toLocaleString()}
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-2 text-amber-800">

@@ -15,7 +15,8 @@ export async function GET(req) {
   
   const tasks = await Task.find(filter)
     .populate('category', 'name description')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .limit(1000); // Add reasonable limit to prevent memory issues
   
   return Response.json(tasks);
 }

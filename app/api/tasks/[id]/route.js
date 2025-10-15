@@ -19,6 +19,12 @@ export async function PATCH(req, { params }) {
   task.notes = notes;
   task.photos = photos;
   task.status = status;
+  
+  // Set completion timestamp for completed or incomplete tasks
+  if (status === "COMPLETED" || status === "INCOMPLETE") {
+    task.dateCompleted = new Date();
+  }
+  
   await task.save();
 
   return new Response(JSON.stringify(task), { status: 200 });
@@ -41,6 +47,7 @@ export async function PUT(req, { params }) {
     task.notes = undefined;
     task.photos = [];
     task.status = "PENDING";
+    task.dateCompleted = undefined; // Clear completion timestamp
     await task.save();
 
     console.log(`Task ${id} reset to pending status`);
