@@ -3,7 +3,7 @@
 export async function POST(req) {
   try {
     const { adminPassword } = await req.json();
-
+    
     if (!adminPassword) {
       return new Response(JSON.stringify({ error: "Password is required" }), { status: 400 });
     }
